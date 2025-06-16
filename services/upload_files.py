@@ -7,7 +7,6 @@ from services.google_embeddings import get_google_embedding
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from bson import ObjectId
 from typing import Optional
-from schemas.document_models import DocumentAccess
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -182,12 +181,6 @@ async def update_file(
 
         if not update_data:
             return JSONResponse(status_code=400, content={"error": "No update data provided"})
-
-        # Update document
-        result = await document_collection.update_one(
-            {"_id": ObjectId(document_id)},
-            {"$set": update_data}
-        )
 
         return JSONResponse(
             status_code=200,

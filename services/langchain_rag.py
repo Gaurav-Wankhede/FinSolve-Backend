@@ -124,6 +124,14 @@ Follow these guidelines:
 4. Include citations to the source documents when appropriate using [Document Title]
 5. Focus on providing factual information relevant to the user's role
 6. Consider the conversation history for context
+7. For CSV data, interpret the data as structured tables with headers and rows
+   - Present tabular data in a readable format
+   - If asked for specific data points, extract them precisely
+   - For financial data, format numbers appropriately (e.g., currency symbols, decimal places)
+8. For Markdown data:
+   - Properly interpret headers, lists, tables, and other formatting
+   - Preserve the hierarchical structure when relevant to the query
+   - Recognize and properly handle code blocks or technical content
 
 CONTEXT INFORMATION:
 {context}

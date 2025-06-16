@@ -6,6 +6,9 @@ from services.chatbot import chatbot_router
 from services.debug import debug_router
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi.utils import get_openapi
+from utils.logging_config import configure_logging
+
+configure_logging()
 
 app = FastAPI()
 

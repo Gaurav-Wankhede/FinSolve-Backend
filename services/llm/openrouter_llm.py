@@ -2,8 +2,17 @@ import os
 import httpx
 from typing import List, Dict, Any
 from tenacity import retry, stop_after_attempt, wait_exponential
+from dotenv import load_dotenv
 
+load_dotenv()
+
+# Get API credentials - with fallback warning for missing key
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+if not OPENROUTER_API_KEY:
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.error("OPENROUTER_API_KEY is not set in .env file. API calls will fail with 401 Unauthorized.")
+
 OPENROUTER_API_URL = os.getenv("OPENROUTER_API_URL", "https://openrouter.ai/api/v1/chat/completions")
 
 # Default headers for OpenRouter
@@ -50,13 +59,32 @@ async def generate_response(
             "max_tokens": max_tokens
         }
         
+        # Debug the API key (first 4 chars and last 4 chars only)
+        api_key = OPENROUTER_API_KEY
+        if api_key:
+            print(f"Using API key: {api_key[:4]}...{api_key[-4:]}")
+        else:
+            print("API key is not set!")
+        
+        # Explicitly set headers for this request
+        headers = {
+            "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+            "HTTP-Referer": "https://finsolve-rag.com",
+            "X-Title": "FinSolve RAG-RBAC",
+            "Content-Type": "application/json"
+        }
+        
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 OPENROUTER_API_URL,
                 json=payload,
-                headers=DEFAULT_HEADERS,
+                headers=headers,  # Use the explicitly defined headers
                 timeout=60.0
             )
+            
+            print(f"OpenRouter response status: {response.status_code}")
+            if response.status_code != 200:
+                print(f"Error response: {response.text}")
             
             response.raise_for_status()
             return response.json()
@@ -93,11 +121,30 @@ async def create_rag_prompt(
         doc_title = doc.get("title", "Untitled")
         doc_category = doc.get("category", "Uncategorized")
         doc_content = doc.get("document", "")
+        doc_format = doc.get("format", "text").lower()
         
-        # Add document info and content to context
-        context_text += f"\n\nDOCUMENT {i}: {doc_title} (Category: {doc_category})\n{doc_content}"
-    
-    # Create system message with instructions
+        # Add document info and content to context with format-specific instructions
+        context_text += f"\n\nDOCUMENT {i}: {doc_title} (Category: {doc_category}, Format: {doc_format})\n"
+        
+        # Add format-specific handling instructions
+        if doc_format == "csv":
+            context_text += "The following contains CSV data. Parse it as a table structure with columns and rows:\n"
+            
+            # Add header information if available
+            if "csv_headers" in doc:
+                headers = doc.get("csv_headers", [])
+                context_text += f"CSV Headers: {', '.join(headers)}\n"
+            
+            # Special handling for HR data
+            if doc.get("hr_data", False):
+                context_text += "This is HR-specific data. When responding to queries about employees, format the data in a structured way and ensure proper interpretation of employee records, departments, and personnel data.\n"
+        
+        elif doc_format == "markdown":
+            context_text += "The following contains Markdown-formatted data. Interpret Markdown syntax correctly:\n"
+        
+        context_text += doc_content
+
+    # Create system message with enhanced instructions for CSV handling
     system_prompt = f"""You are an AI assistant for FinSolve Technologies, providing role-specific information to users. 
 You're responding to a user with the role: {role}.
 
@@ -107,6 +154,23 @@ Follow these guidelines:
 3. Keep responses professional, clear, and concise
 4. Include citations to the source documents when appropriate using [Document Title]
 5. Focus on providing factual information relevant to the user's role
+
+Note that all documents come from a MongoDB vector database where they were stored as embeddings. 
+The original structure may need to be reconstructed from the text.
+
+For CSV data:
+- The data was originally in CSV format before being stored in the vector database
+- Reconstruct the table structure from the comma-separated values
+- Treat the first line as headers unless clearly not appropriate
+- Parse CSV as structured tables with rows and columns
+- For HR data, organize employee information clearly by columns
+- Present tabular data in a readable format
+- When dealing with employee records, include relevant fields like name, position, department, etc.
+- Format numbers and dates according to their meaning (currencies, percentages, dates)
+
+For Markdown data:
+- Properly interpret headers, lists, tables, and other Markdown elements
+- Maintain the structure and formatting implied by the Markdown
 
 CONTEXT INFORMATION:
 {context_text}

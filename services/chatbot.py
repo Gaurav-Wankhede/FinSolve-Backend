@@ -173,7 +173,50 @@ async def chat(
         
         # Extract documents from search results
         retrieved_docs = [result["document"] for result in search_results]
+
         
+        # Enhance CSV handling, especially for HR data
+        # Special handling for CSV data in vector database
+        for doc in retrieved_docs:
+            content = doc.get("document", "")
+            
+            # Check if this might be CSV data
+            if content and isinstance(content, str):
+                # CSV detection based on content patterns
+                if (content.count(',') > 3 and content.count('\n') > 1) or \
+                (doc.get("filename", "").endswith(".csv")) or \
+                (doc.get("title", "").endswith(".csv")):
+                    
+                    doc["format"] = "csv"
+                    
+                    # Try to reconstruct CSV structure for better processing
+                    try:
+                        lines = content.strip().split('\n')
+                        if lines and ',' in lines[0]:
+                            # Extract headers from first line
+                            headers = [h.strip() for h in lines[0].split(',')]
+                            doc["csv_headers"] = headers
+                            
+                            # For HR data detection
+                            hr_related_terms = ["employee", "personnel", "salary", "position", 
+                                            "department", "hire", "staff", "team member"]
+                            
+                            # Check if this is HR data
+                            is_hr_data = False
+                            if "hr" in doc.get("category", "").lower():
+                                is_hr_data = True
+                            else:
+                                # Check headers for HR-related terms
+                                for header in headers:
+                                    if any(term in header.lower() for term in hr_related_terms):
+                                        is_hr_data = True
+                                        break
+                            
+                            if is_hr_data:
+                                doc["hr_data"] = True
+                    except Exception as e:
+                        logger.warning(f"Error processing CSV structure: {e}")
+
         # Format source documents for response
         source_documents = []
         for doc in retrieved_docs:
