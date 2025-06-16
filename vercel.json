@@ -11,6 +11,11 @@
         "dest": "main.py"
       }
     ],
+    "functions": {
+      "api/**/*.py": {
+        "maxDuration": 60
+      }
+    },
     "env": {
       "PYTHONUNBUFFERED": "1"
     }
