@@ -1,0 +1,14 @@
+fastapi
+pydantic
+uvicorn
+motor             # async MongoDB client
+python-multipart  # for file uploads
+python-jose[cryptography]  # for JWT tokens
+python-dotenv     # for environment variables
+langchain         # LangChain framework
+langchain-core    # LangChain core components
+langchain-community  # LangChain community components
+openai            # OpenAI client for LangChain models
+numpy             # for vector operations
+httpx             # for API requests
+tenacity          # for retry logic
