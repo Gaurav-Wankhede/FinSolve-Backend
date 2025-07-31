@@ -90,7 +90,7 @@ The system supports multiple language models through OpenRouter and Groq:
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/finsolve-rag.git
+   git clone https://github.com/Gaurav-Wankhede/gaurav-wankhede-backend.git # Rename with finsolve-rag
    cd finsolve-rag/backend
    ```
 
